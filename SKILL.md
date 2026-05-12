@@ -21,6 +21,8 @@ The default deliverable is separate ordered text files, not one monolithic merge
 
 Always normalize the protagonist/player name to `You` in extracted English text and speaker maps. Do not use fallback names such as Jack, MC, a persistent save value, or a default from the source project unless the user explicitly asks for that exact rendered name.
 
+Always distinguish spoken dialogue from inner thoughts in extracted text and speaker maps. Do not flatten thought-character dialogue into ordinary speech. If a project encodes thoughts through `what_prefix="("` / `what_suffix=")"`, italic thought prefixes, no-name thought characters, or speaker keys such as `mct`, `mcT`, `thought`, or `intrusive thoughts`, mark them explicitly in the output, for example `You (thought): text`. Keep normal speech as `You: text`. Apply this distinction even when the protagonist name is normalized to `You`.
+
 Each time this skill is used on a project, update this skill with reusable lessons, pitfalls, and user-stated requirements discovered during that work. Keep the update concise and general; avoid one-off plot spoilers or project-only clutter unless the issue is likely to recur.
 
 ## Workflow
@@ -69,13 +71,16 @@ Each time this skill is used on a project, update this skill with reusable lesso
 
 6. Map rendered names.
    - Parse `define key = Character("Name", ...)` in variables files. Allow optional whitespace such as `Character ("Name", ...)`.
+   - Parse `Character(...)` and `DynamicCharacter(...)` display metadata, especially `what_prefix`, `what_suffix`, `who_prefix`, and `who_suffix`, before generating the speaker map. Use this metadata to classify each speaker as spoken dialogue, inner thought, narration/no-name text, styled speech, or another project-specific visible-text type.
    - Parse `default var = "value"` for dynamic text variables such as `[playerName]`, `[playerNameA]`, `[jnNick]`, `[scarNick]`, `[heart]`.
    - Add speaker keys themselves as substitutions when needed, e.g. `[mc]` should render through `mc = Character("[playerName]")`.
    - Support Ren'Py interpolation forms such as `[playerName]`, `[playerName!u]`, and `[playerName.upper()]`.
    - Override protagonist variables and speakers to `You`: examples include `[player_name]`, `[playerName]`, `[mc]`, `[p]`, and `define p = Character("[player_name]")`. Apply this override before generating the story text and speaker map.
+   - When the protagonist has separate speech and thought speakers, keep both mapped to `You` but record the mode separately, for example `mc = You (speech)` and `mct = You (thought)`.
 
 7. Extract player-visible story text.
    - Keep dialogue, narrator lines, meaningful centered transition text, choices, and in-game text messages.
+   - Format inner thoughts distinctly from spoken dialogue. Prefer `Speaker (thought): text` for thought-character lines and `Speaker: text` for ordinary spoken lines. If the game visibly renders thoughts with parentheses, either preserve those parentheses or use the explicit `(thought)` marker, but do not lose the distinction.
    - Extract phone/message calls such as `call message_img("", "text", "other/darcitxt.png")` and `call reply_message("text")`.
    - Some projects implement phone chats as dictionaries of custom `Msg(who, text, replies=...)` objects and insert them with `call chat(chat_name)`. Treat the chat file as a message container: traverse from step `"0"`, include all reachable reply branches once, render `"mc"` as `You`, and insert the chat at the call site.
    - Story-visible `screen text` may live in support screens and be triggered by `show screen` or unlock variables rather than normal dialogue, such as time cards, email/readable documents, poems, news captions, death messages, or audio logs. Include only screens reached from story flow or unlocked at that point; exclude menu, gallery, preference, score, and minigame UI text.
@@ -91,6 +96,7 @@ Each time this skill is used on a project, update this skill with reusable lesso
    - Do a stricter unresolved-variable search for lowercase identifier brackets such as `\[player_name\]`, `\[temp_str\]`, `\[loaded_d20roll\]`, or `\[some_var!u\]`. Resolve them to concrete defaults, readable ranges, or intentional markers.
    - Search leftover tags: `\{[^}\n]+\}`.
    - Search for fake speakers or leakage: `^extend:`, `^label `, `^screen `, and resource-like file names.
+   - Audit known thought speaker keys and thought-style `Character(...)` definitions against the output. Confirm thought lines are marked as thoughts and are not emitted as ordinary speech.
    - If audit output contains many bracket expressions, distinguish player-visible captions like `[!!Ding-dong!!]`, TV/phone subtitles, and `[Choice]` from unresolved Ren'Py variables before changing them.
    - Reverse-audit source quoted strings that the extractor did not consume; classify each as story text, UI text, resource data, or unreachable text.
    - Fix the script/config and regenerate until the output matches player-visible narrative content.
@@ -105,6 +111,10 @@ Each time this skill is used on a project, update this skill with reusable lesso
 
 - `scripts/renpy_story_extract.py`: reusable extractor/merger. Prefer using it with a project-specific JSON config for reliable ordering.
 - `references/workflow.md`: detailed notes, regex patterns, audit commands, and Ren'Py pitfalls learned from prior extraction work.
+
+## Documentation Notes
+
+- When packaging or documenting this workflow as a public repository, present it as a Codex skill/workflow rather than a standalone executable application. Prefer a repository name that makes the skill nature clear, such as `renpy-story-extract-skill`, and keep short repository descriptions focused on intended use cases rather than implementation steps.
 
 ## Practical Use
 
