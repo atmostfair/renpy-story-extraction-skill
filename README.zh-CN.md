@@ -1,12 +1,18 @@
 # Ren'Py 剧情提取 Skill
 
-**建议仓库名称：** `renpy-story-extract-skill`
+**仓库名称：** `renpy-story-extraction-skill`
 
 [English](README.md)
 
 Ren'Py 剧情提取 Skill 是一个面向 Codex 的技能，用于处理 Ren'Py 视觉小说脚本，并准备有顺序、可阅读、可审计的剧情参考材料。这些文本可以作为 NotebookLM、私有知识库、检索增强生成系统、剧情总结、人物分析、本地资料检索、翻译校对、连续性检查，或其他需要剧情资料作为参考的场景的输入材料。
 
 这个仓库是 skill 包和工作流参考，不是传统意义上的独立可执行程序项目。本项目适合个人研究、资料整理和已授权的内容处理。除非你拥有版权或获得明确许可，否则不要公开分发提取出的受版权保护剧情文本。
+
+## 自适应 Skill 行为
+
+这个 skill 设计为会在真实使用中持续改进。每完成一次剧情提取任务后，可以把新发现的可复用经验、项目结构模式、审计检查点和用户偏好写回本地 `SKILL.md`。随后，skill 会将这些更新单向同步到配置好的 GitHub 仓库，并自动生成 commit 信息，让维护者或 fork 用户拥有一份会随使用逐渐成熟的版本。
+
+如果你 fork 这个仓库，它可以逐渐变成适合你个人工作方式的 Ren'Py 剧情提取 skill：基础流程保持一致，但会随着你的项目、命名习惯、审计偏好和常见边界情况独立演化。
 
 ## 这个项目解决什么问题
 
@@ -40,7 +46,7 @@ Ren'Py 游戏的剧情通常分散在多个 `.rpy` 文件、标签、路线文�
 ## 推荐仓库结构
 
 ```text
-renpy-story-extract-skill/
+renpy-story-extraction-skill/
 ├─ README.md
 ├─ README.zh-CN.md
 ├─ SKILL.md

@@ -1,12 +1,18 @@
 # Ren'Py Story Extract Skill
 
-**Suggested repository name:** `renpy-story-extract-skill`
+**Repository name:** `renpy-story-extraction-skill`
 
 [简体中文](README.zh-CN.md)
 
 Ren'Py Story Extract Skill is a Codex skill for working with Ren'Py visual novel scripts and preparing ordered, readable story reference material. The extracted text can be used as source material for tools such as NotebookLM, private knowledge bases, retrieval-augmented generation systems, localization review, continuity checking, story summarization, or other workflows that need narrative material as reference.
 
 This repository is a skill package and workflow reference, not a traditional standalone executable application. It is designed for personal research, documentation, and authorized content processing. Do not redistribute copyrighted story text unless you own it or have explicit permission.
+
+## Adaptive Skill Behavior
+
+This skill is intended to improve through use. After a real extraction task, reusable lessons, project patterns, audit checks, and user preferences can be added back into the local `SKILL.md`. The skill then mirrors those updates one-way to the configured GitHub repository with an automatic commit message, giving maintainers and fork owners a living copy that gradually reflects their own source formats, review habits, and narrative-analysis needs.
+
+If you fork this repository, your fork can become a personalized Ren'Py extraction skill. It keeps the shared workflow structure, while your repeated use teaches it the conventions and edge cases that matter in your own projects.
 
 ## What This Is For
 
@@ -40,7 +46,7 @@ This repository provides a repeatable approach for extracting player-visible nar
 ## Recommended Repository Layout
 
 ```text
-renpy-story-extract-skill/
+renpy-story-extraction-skill/
 ├─ README.md
 ├─ README.zh-CN.md
 ├─ SKILL.md

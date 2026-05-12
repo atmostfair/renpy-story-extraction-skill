@@ -23,7 +23,7 @@ Always normalize the protagonist/player name to `You` in extracted English text 
 
 Always distinguish spoken dialogue from inner thoughts in extracted text and speaker maps. Do not flatten thought-character dialogue into ordinary speech. If a project encodes thoughts through `what_prefix="("` / `what_suffix=")"`, italic thought prefixes, no-name thought characters, or speaker keys such as `mct`, `mcT`, `thought`, or `intrusive thoughts`, mark them explicitly in the output, for example `You (thought): text`. Keep normal speech as `You: text`. Apply this distinction even when the protagonist name is normalized to `You`.
 
-Each time this skill is used on a project, update this skill with reusable lessons, pitfalls, and user-stated requirements discovered during that work. Keep the update concise and general; avoid one-off plot spoilers or project-only clutter unless the issue is likely to recur.
+Each time this skill is used on a project, update this skill with reusable lessons, pitfalls, and user-stated requirements discovered during that work. Keep the update concise and general; avoid one-off plot spoilers or project-only clutter unless the issue is likely to recur. After updating the installed local skill, mirror the updated skill package one-way to the configured GitHub repository so the public/forked copy evolves with real use.
 
 ## Workflow
 
@@ -102,10 +102,15 @@ Each time this skill is used on a project, update this skill with reusable lesso
    - Fix the script/config and regenerate until the output matches player-visible narrative content.
    - Run audits per output file and across the output directory. A single clean merged file is not enough if any `storyxx_*.txt` file still has leakage.
 
-9. Update the skill.
+9. Update the skill and sync it.
    - Before final response, identify reusable lessons from the current project: new archive layouts, ordering controllers, custom visible-text helpers, dynamic variable forms, encoding issues, or user constraints.
    - Update `SKILL.md` or a directly linked reference with those lessons if they generalize beyond one plot event.
-   - Validate the skill after editing when possible, then mention the skill update in the final response.
+   - Treat the installed local skill as the source of newly learned behavior, then mirror the same change into the repository checkout for `https://github.com/atmostfair/renpy-story-extraction-skill.git`.
+   - Before committing, fetch or pull the remote default branch. If conflicts appear, resolve them intelligently: preserve the newly learned local guidance, keep unrelated remote improvements, remove duplicate wording, and leave `SKILL.md`, `README.md`, `README.zh-CN.md`, and bundled references internally consistent.
+   - Validate the skill after editing when possible. At minimum, inspect frontmatter, search for stale repository names, check Markdown links, and run available script/help or syntax checks for changed bundled scripts.
+   - Commit the repository sync with an automatically generated concise message, usually `docs(skill): sync learned extraction workflow updates` or a more specific `docs(skill): <summary>`.
+   - Push to the configured GitHub remote. If push is rejected, pull/rebase, resolve conflicts using the same preservation rules, re-run validation, commit if needed, and push again.
+   - Mention the skill update and repository sync status in the final response.
 
 ## Bundled Resources
 
@@ -114,7 +119,8 @@ Each time this skill is used on a project, update this skill with reusable lesso
 
 ## Documentation Notes
 
-- When packaging or documenting this workflow as a public repository, present it as a Codex skill/workflow rather than a standalone executable application. Prefer a repository name that makes the skill nature clear, such as `renpy-story-extract-skill`, and keep short repository descriptions focused on intended use cases rather than implementation steps.
+- When packaging or documenting this workflow as a public repository, present it as a Codex skill/workflow rather than a standalone executable application. Use the repository name `renpy-story-extraction-skill`, and keep short repository descriptions focused on intended use cases rather than implementation steps.
+- Public documentation should explain that forks can evolve independently: as the skill is used, reusable lessons from each user's projects and preferences are added to their local skill and can be pushed back to their own repository fork.
 
 ## Practical Use
 
