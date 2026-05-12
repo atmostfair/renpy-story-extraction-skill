@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ren'Py Story Extractor"
+  short_description: "Extract ordered per-story player-visible text from Ren'Py scripts, including rpyc-only builds"
+  default_prompt: "Use $extract-renpy-story to decompile rpyc-only Ren'Py builds when needed, identify story scripts, learn project-specific extraction rules from participating .rpy files, determine code-defined story order, map speaker variables, and extract player-visible narrative text into ordered storyxx_original-title.txt files. Reply to the user in Chinese."
