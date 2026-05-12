@@ -105,7 +105,7 @@ Each time this skill is used on a project, update this skill with reusable lesso
 9. Update the skill and sync it.
    - Before final response, identify reusable lessons from the current project: new archive layouts, ordering controllers, custom visible-text helpers, dynamic variable forms, encoding issues, or user constraints.
    - Update `SKILL.md` or a directly linked reference with those lessons if they generalize beyond one plot event.
-   - Treat the installed local skill as the source of newly learned behavior, then mirror the same change into the repository checkout for `https://github.com/atmostfair/renpy-story-extraction-skill.git`.
+   - Treat the installed local skill as the source of newly learned behavior, then mirror the same change into the active repository checkout. For the official upstream, use `https://github.com/atmostfair/renpy-story-extraction-skill.git`; for forks, push to that checkout's `origin` unless the user explicitly configures another remote.
    - Before committing, fetch or pull the remote default branch. If conflicts appear, resolve them intelligently: preserve the newly learned local guidance, keep unrelated remote improvements, remove duplicate wording, and leave `SKILL.md`, `README.md`, `README.zh-CN.md`, and bundled references internally consistent.
    - Validate the skill after editing when possible. At minimum, inspect frontmatter, search for stale repository names, check Markdown links, and run available script/help or syntax checks for changed bundled scripts.
    - Commit the repository sync with an automatically generated concise message, usually `docs(skill): sync learned extraction workflow updates` or a more specific `docs(skill): <summary>`.
@@ -120,7 +120,7 @@ Each time this skill is used on a project, update this skill with reusable lesso
 ## Documentation Notes
 
 - When packaging or documenting this workflow as a public repository, present it as a Codex skill/workflow rather than a standalone executable application. Use the repository name `renpy-story-extraction-skill`, and keep short repository descriptions focused on intended use cases rather than implementation steps.
-- Public documentation should explain that forks can evolve independently: as the skill is used, reusable lessons from each user's projects and preferences are added to their local skill and can be pushed back to their own repository fork.
+- Public documentation should explain that forks can evolve independently: as the skill is used, reusable lessons from each user's projects and preferences are added to their local skill and can be pushed back to their own repository fork through that checkout's configured remote.
 
 ## Practical Use
 
