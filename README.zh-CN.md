@@ -38,7 +38,7 @@ Ren'Py 游戏的剧情通常分散在多个 `.rpy` 文件、标签、路线文�
 ## 重要注意事项
 
 - 尽量使用 `.rpy` 源文件。
-- 如果只有 `.rpyc` 编译文件，需要先用 `unrpyc` 等工具反编译，再检查生成的 `.rpy` 文件。
+- 如果只有 `.rpyc` 编译文件，需要先用 `unrpyc` 等工具反编译，再检查生成的 `.rpy` 文件。如果没有全局安装 `unrpyc`，或它不在 `PATH` 中，请使用仓库内置的 `scripts/unrpyc/unrpyc.py`。
 - 不要假设文件名顺序就是剧情顺序。应根据 Ren'Py 的 `label`、`jump`、`call`、路线控制器、章节列表、回放/图库入口和 screen action 判断顺序。
 - 默认应保留按剧情单元拆分的输出文件。合并文件可以作为便利版本，但不应替代逐段输出。
 - 遵守版权、平台条款和源材料许可证。将文本上传到 AI 工具或用于训练，可能涉及法律和合同限制。
@@ -59,7 +59,8 @@ renpy-story-extraction-skill/
 ├─ README.zh-CN.md
 ├─ SKILL.md
 ├─ scripts/
-│  └─ renpy_story_extract.py
+│  ├─ renpy_story_extract.py
+│  └─ unrpyc/
 ├─ configs/
 │  └─ example.project.json
 ├─ input/
@@ -73,7 +74,7 @@ renpy-story-extraction-skill/
 目录建议：
 
 - `SKILL.md`：Codex skill 的核心说明文件。
-- `scripts/`：提取脚本和审计辅助脚本。
+- `scripts/`：提取脚本、审计辅助脚本，以及内置的 `unrpyc` fallback。
 - `configs/`：项目级提取计划、说话人映射、顺序规则和包含/排除配置。
 - `input/`：临时放置源文件。真实游戏文件通常不建议提交到 git。
 - `work/`：扫描结果、跳转图、分析笔记和中间文件。
@@ -89,6 +90,12 @@ renpy-story-extraction-skill/
 
 ```bash
 unrpyc ./game
+```
+
+如果全局环境找不到 `unrpyc`，请使用这个 skill checkout 中内置的 fallback：
+
+```bash
+python path/to/renpy-story-extraction-skill/scripts/unrpyc/unrpyc.py ./game
 ```
 
 Android 风格的资源目录可以使用：

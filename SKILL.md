@@ -11,7 +11,7 @@ When this skill is used, reply to the user in Chinese, even if the user invokes 
 
 ## Core Rule
 
-Use `.rpy` source files, not `.rpyc` compiled files. If only `.rpyc` exists, first decompile with `unrpyc` and then continue from the generated `.rpy` files. For example, run `unrpyc ./` from the project root to decompile `.rpyc` files in that directory and all subdirectories, or run `unrpyc ./assets` when the Ren'Py payload is under `assets/`.
+Use `.rpy` source files, not `.rpyc` compiled files. If only `.rpyc` exists, first decompile with `unrpyc` and then continue from the generated `.rpy` files. Use a global `unrpyc` command when it is available; otherwise use this skill's bundled fallback under `scripts/unrpyc/`. For example, run `unrpyc ./` from the project root to decompile `.rpyc` files in that directory and all subdirectories, or run `python <skill-dir>/scripts/unrpyc/unrpyc.py ./assets` when the Ren'Py payload is under `assets/` and no global command is available.
 
 Do not assume filename or alphabetical order is game order. Determine order from Ren'Py `label`, `jump`, and `call` flow. Treat recap files, route files, text-message files, and translation files as label containers that may need to be split and inserted where the game jumps to them.
 
@@ -32,9 +32,11 @@ Each time this skill is used on a project, update this skill with reusable lesso
    - Decompiled Android builds often use `assets/x-game/` and script folders such as `assets/x-game/x-scripts/`.
    - Android/YAC-crunched builds may prefix game files with `x-`, such as `assets/x-game/x-script.rpyc`, `x-game_vars.rpyc`, `x-script_exp_01.rpyc`, and `x-script_version.txt`.
    - Check exact extensions; PowerShell `-Filter *.rpy` can also match `.rpyc`, so prefer `Where-Object { $_.Extension -eq '.rpy' }`.
-   - If no `.rpy` files exist, run `unrpyc ./` or a narrower path such as `unrpyc ./assets` or `unrpyc ./assets/x-game`, then inspect the generated `.rpy`.
+   - If no `.rpy` files exist, first try a global `unrpyc ./` or a narrower path such as `unrpyc ./assets` or `unrpyc ./assets/x-game`, then inspect the generated `.rpy`.
    - If `unrpyc` is not found by `where.exe unrpyc` or `Get-Command unrpyc`, check for stale process environment before assuming it is unavailable. Codex/desktop shells may inherit an old `PATH` even after the user added a machine/user environment variable. Compare `$env:Path` with `[Environment]::GetEnvironmentVariable('Path','User')` and `('Path','Machine')`, check known dependency locations such as `D:\Dependency\unrpyc\unrpyc.cmd`, and temporarily append the missing directory to `$env:Path` when present.
-   - If `unrpyc` is genuinely not available after refreshing/checking `PATH`, do not assume `pip install unrpyc` works. Use a known unrpyc source checkout/release, then run `python unrpyc.py <script-root>`. Check files such as `x-script_version.txt` to understand the Ren'Py bytecode version.
+   - If global `unrpyc` is genuinely not available after refreshing/checking `PATH`, do not assume the user has installed it and do not start with `pip install unrpyc`. Use the bundled fallback from this skill directory: `python <skill-dir>/scripts/unrpyc/unrpyc.py <script-root>`. On Windows, `scripts/unrpyc/unrpyc.cmd <script-root>` is also available when the `py -3` launcher exists.
+   - Use absolute paths and quotes when either the skill directory or target project path contains spaces, for example `python "C:\Users\Name\.codex\skills\extract-renpy-story\scripts\unrpyc\unrpyc.py" ".\assets\x-game"`.
+   - Only look for an external unrpyc checkout/release when both the global command and bundled fallback fail, or when the project requires an unsupported legacy Ren'Py bytecode path. Check files such as `x-script_version.txt` to understand the Ren'Py bytecode version and record why the bundled fallback was insufficient.
 
 2. Classify files.
    - Story candidates: files containing many `label`, dialogue, `menu`, `jump`, `call message_img`, or scene labels such as `e1s1`, `ep4sc1`, `episode9`.
@@ -115,6 +117,7 @@ Each time this skill is used on a project, update this skill with reusable lesso
 ## Bundled Resources
 
 - `scripts/renpy_story_extract.py`: reusable extractor/merger. Prefer using it with a project-specific JSON config for reliable ordering.
+- `scripts/unrpyc/`: bundled Unrpyc command-line fallback for users who do not have `unrpyc` installed globally or exposed through `PATH`. Keep this folder trimmed to runtime files: `unrpyc.py`, `unrpyc.cmd`, `deobfuscate.py`, `decompiler/*.py`, and `LICENSE`.
 - `references/workflow.md`: detailed notes, regex patterns, audit commands, and Ren'Py pitfalls learned from prior extraction work.
 
 ## Documentation Notes

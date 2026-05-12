@@ -38,7 +38,7 @@ This repository provides a repeatable approach for extracting player-visible nar
 ## Important Notes
 
 - Use `.rpy` source files whenever possible.
-- If only `.rpyc` files are available, decompile them first with a tool such as `unrpyc`, then inspect the generated `.rpy` files.
+- If only `.rpyc` files are available, decompile them first with a tool such as `unrpyc`, then inspect the generated `.rpy` files. If `unrpyc` is not installed globally or is missing from `PATH`, use the bundled fallback at `scripts/unrpyc/unrpyc.py`.
 - Do not assume file name order is story order. Determine order from Ren'Py `label`, `jump`, `call`, route controllers, episode lists, gallery/replay entries, and screen actions.
 - Keep extracted output split into per-story files by default. A single merged file can be useful, but it should not replace ordered per-story outputs.
 - Respect copyright, platform terms, and the license of the source material. Uploading text to AI tools or training systems may have legal or contractual implications.
@@ -59,7 +59,8 @@ renpy-story-extraction-skill/
 ├─ README.zh-CN.md
 ├─ SKILL.md
 ├─ scripts/
-│  └─ renpy_story_extract.py
+│  ├─ renpy_story_extract.py
+│  └─ unrpyc/
 ├─ configs/
 │  └─ example.project.json
 ├─ input/
@@ -73,7 +74,7 @@ renpy-story-extraction-skill/
 Suggested directory roles:
 
 - `SKILL.md`: the core Codex skill instructions.
-- `scripts/`: extractor scripts and audit helpers.
+- `scripts/`: extractor scripts, audit helpers, and the bundled `unrpyc` fallback.
 - `configs/`: project-specific extraction plans, speaker maps, ordering rules, and inclusion/exclusion settings.
 - `input/`: temporary local source files. Usually keep real game files out of git.
 - `work/`: scan results, jump graphs, notes, and intermediate files.
@@ -89,6 +90,12 @@ If you already have `.rpy` files, use those. If you only have `.rpyc` files, dec
 
 ```bash
 unrpyc ./game
+```
+
+If `unrpyc` is not available globally, use the bundled fallback from this skill checkout:
+
+```bash
+python path/to/renpy-story-extraction-skill/scripts/unrpyc/unrpyc.py ./game
 ```
 
 or, for an Android-style payload:
