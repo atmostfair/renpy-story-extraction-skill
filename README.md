@@ -1,10 +1,10 @@
-# Ren'Py Story Extract Skill
+# Ren'Py Story Extraction Skill
 
 **Repository name:** `renpy-story-extraction-skill`
 
 [简体中文](README.zh-CN.md)
 
-Ren'Py Story Extract Skill is a Codex skill for working with Ren'Py visual novel scripts and preparing ordered, readable story reference material. The extracted text can be used as source material for tools such as NotebookLM, private knowledge bases, retrieval-augmented generation systems, localization review, continuity checking, story summarization, or other workflows that need narrative material as reference.
+Ren'Py Story Extraction Skill is a Codex skill for working with Ren'Py visual novel scripts and preparing ordered, readable story reference material. The extracted text can be used as source material for tools such as NotebookLM, private knowledge bases, retrieval-augmented generation systems, localization review, continuity checking, story summarization, or other workflows that need narrative material as reference.
 
 This repository is a skill package and workflow reference, not a traditional standalone executable application. It is designed for personal research, documentation, and authorized content processing. Do not redistribute copyrighted story text unless you own it or have explicit permission.
 
@@ -42,6 +42,14 @@ This repository provides a repeatable approach for extracting player-visible nar
 - Do not assume file name order is story order. Determine order from Ren'Py `label`, `jump`, `call`, route controllers, episode lists, gallery/replay entries, and screen actions.
 - Keep extracted output split into per-story files by default. A single merged file can be useful, but it should not replace ordered per-story outputs.
 - Respect copyright, platform terms, and the license of the source material. Uploading text to AI tools or training systems may have legal or contractual implications.
+
+## Self-Evolving Skill Sync
+
+This repository is intended to be both a reusable skill and a living record of extraction lessons learned from real projects. After each extraction task, Codex should fold broadly reusable lessons back into the installed `SKILL.md` or linked references, validate the updated skill package, commit the documentation changes with a concise generated message, and push them to the configured GitHub remote.
+
+The sync direction is intentionally one-way for learned behavior: local skill improvements are mirrored into the active repository checkout and pushed to `origin`. Before committing, Codex should fetch or pull the remote default branch. If a fork has its own remote changes, Codex should preserve both sides where possible, remove duplicate wording, keep the new local guidance, and then push the reconciled result.
+
+Forks are expected to diverge constructively. When you fork this repository and use the skill on your own Ren'Py projects, the workflow can accumulate your project patterns, preferred extraction rules, naming conventions, and audit expectations in your fork instead of being locked to the upstream maintainer's habits.
 
 ## Recommended Repository Layout
 
