@@ -25,6 +25,15 @@ Always distinguish spoken dialogue from inner thoughts in extracted text and spe
 
 Each time this skill is used on a project, update this skill with reusable lessons, pitfalls, and user-stated requirements discovered during that work. Keep the update concise and general; avoid one-off plot spoilers or project-only clutter unless the issue is likely to recur. After updating the installed local skill, mirror the updated skill package one-way to the configured GitHub repository so the public/forked copy evolves with real use.
 
+## Repository Sync Rule
+
+When this skill package is a Git checkout, sync before and after skill work.
+
+- Before using the skill for a project or editing the skill itself, fetch the configured remote. If the working tree is clean and the remote default branch is ahead, fast-forward or rebase onto it before continuing. If local uncommitted changes exist, do not overwrite them; inspect whether they are current user work, stash only when safe, then integrate remote changes without losing local edits.
+- If the pre-use pull changes skill instructions or bundled scripts that matter for the current task, re-read the changed files before continuing so the current run follows the updated rules.
+- After the task, update reusable lessons locally, validate the skill, fetch/pull again, resolve conflicts by preserving both remote improvements and newly learned local guidance, commit with a concise generated message, and push to the configured remote.
+- If network or authentication blocks fetch/pull/push, finish the local task when possible, leave the repository in a clean or clearly documented state, and report exactly which sync step is still pending.
+
 ## Workflow
 
 1. Locate the Ren'Py script root.
@@ -112,7 +121,7 @@ Each time this skill is used on a project, update this skill with reusable lesso
    - Before final response, identify reusable lessons from the current project: new archive layouts, ordering controllers, custom visible-text helpers, dynamic variable forms, encoding issues, or user constraints.
    - Update `SKILL.md` or a directly linked reference with those lessons if they generalize beyond one plot event.
    - Treat the installed local skill as the source of newly learned behavior, then mirror the same change into the active repository checkout. For the official upstream, use `https://github.com/atmostfair/renpy-story-extraction-skill.git`; for forks, push to that checkout's `origin` unless the user explicitly configures another remote.
-   - Before committing, fetch or pull the remote default branch. If conflicts appear, resolve them intelligently: preserve the newly learned local guidance, keep unrelated remote improvements, remove duplicate wording, and leave `SKILL.md`, `README.md`, `README.zh-CN.md`, and bundled references internally consistent.
+   - Before committing, fetch or pull the remote default branch again, even if the pre-use sync already ran. If conflicts appear, resolve them intelligently: preserve the newly learned local guidance, keep unrelated remote improvements, remove duplicate wording, and leave `SKILL.md`, `README.md`, `README.zh-CN.md`, and bundled references internally consistent.
    - Validate the skill after editing when possible. At minimum, inspect frontmatter, search for stale repository names, check Markdown links, and run available script/help or syntax checks for changed bundled scripts.
    - Commit the repository sync with an automatically generated concise message, usually `docs(skill): sync learned extraction workflow updates` or a more specific `docs(skill): <summary>`.
    - Push to the configured GitHub remote. If push is rejected, pull/rebase, resolve conflicts using the same preservation rules, re-run validation, commit if needed, and push again.
