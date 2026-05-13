@@ -72,6 +72,8 @@ TAG_RE = re.compile(
 CONTROL_TAG_RE = re.compile(r'\{(?:w(?:=[^}]*)?|p|nw|fast|clear)\}')
 IMAGE_TAG_RE = re.compile(r'\{image=[^}]+\}')
 PF_TAG_RE = re.compile(r'\{pf=([A-Za-z_]\w*)\}')
+REMAINING_TAG_RE = re.compile(r'\{[^}]+\}')
+RENPY_LINK_RE = re.compile(r'\[\[([^\]]+)\]\]?')
 VAR_RE = re.compile(r'\[([A-Za-z_]\w*)(?P<method>\.upper\(\))?(?P<conversion>![^\]]+)?\]')
 
 
@@ -129,10 +131,12 @@ def render_variables(text, substitutions):
 
 def clean_text(text, substitutions):
     text = unescape_renpy_string(str(text))
+    text = RENPY_LINK_RE.sub(r'\1', text)
     text = render_variables(text, substitutions)
     text = IMAGE_TAG_RE.sub("", text)
     text = TAG_RE.sub("", text)
     text = CONTROL_TAG_RE.sub("", text)
+    text = REMAINING_TAG_RE.sub("", text)
     text = text.replace("%%", "%")
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r" *\n *", "\n", text)
@@ -322,6 +326,7 @@ def extract_items(lines, speakers, substitutions, config):
     include_centered = not config.get("exclude_centered", False)
     exclude_ui_texts = set(config.get("exclude_ui_texts", []))
     message_senders = {k.lower(): v for k, v in config.get("message_senders", {}).items()}
+    speaker_mode = config.get("speaker_mode", {})
 
     for line in lines:
         stripped = line.strip()
@@ -373,6 +378,8 @@ def extract_items(lines, speakers, substitutions, config):
                 speaker = None
             if speaker_key and speaker_key not in speakers:
                 stats["unknown_speakers"].add(speaker_key)
+            if speaker_key and speaker_mode.get(speaker_key):
+                speaker = f"{speaker} ({speaker_mode[speaker_key]})"
             if speaker:
                 items.append(f"{speaker}: {text}")
                 stats["dialogue"] += 1
@@ -500,9 +507,13 @@ def command_extract(args):
     output.write_text("\n".join(output_items).strip() + "\n", encoding="utf-8")
 
     if args.speaker_map:
+        speaker_mode = config.get("speaker_mode", {})
         lines = ["# Character speaker keys"]
         for key in sorted(speakers):
-            lines.append(f"{key} = {speakers[key] if speakers[key] is not None else '(narrator / no namebox)'}")
+            name = speakers[key] if speakers[key] is not None else '(narrator / no namebox)'
+            if mode := speaker_mode.get(key):
+                name = f"{name} ({mode})"
+            lines.append(f"{key} = {name}")
         lines.append("")
         lines.append("# Text variables")
         for key in sorted(substitutions):

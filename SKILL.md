@@ -31,6 +31,7 @@ Each time this skill is used on a project, update this skill with reusable lesso
    - Desktop projects usually use `game/`.
    - Decompiled Android builds often use `assets/x-game/` and script folders such as `assets/x-game/x-scripts/`.
    - Android/YAC-crunched builds may prefix game files with `x-`, such as `assets/x-game/x-script.rpyc`, `x-game_vars.rpyc`, `x-script_exp_01.rpyc`, and `x-script_version.txt`.
+   - Some Android builds separate character definitions into their own file (e.g. `x-characters.rpyc`) and store plain Python variable assignments inside `init python:` blocks in `x-variables.rpyc` rather than using `default`/`define` syntax. When config `variable_files` is used to include the character file, the bundled script can discover speaker mappings that would otherwise be missed.
    - Check exact extensions; PowerShell `-Filter *.rpy` can also match `.rpyc`, so prefer `Where-Object { $_.Extension -eq '.rpy' }`.
    - If no `.rpy` files exist, first try a global `unrpyc ./` or a narrower path such as `unrpyc ./assets` or `unrpyc ./assets/x-game`, then inspect the generated `.rpy`.
    - If `unrpyc` is not found by `where.exe unrpyc` or `Get-Command unrpyc`, check for stale process environment before assuming it is unavailable. Codex/desktop shells may inherit an old `PATH` even after the user added a machine/user environment variable. Compare `$env:Path` with `[Environment]::GetEnvironmentVariable('Path','User')` and `('Path','Machine')`, check known dependency locations such as `D:\Dependency\unrpyc\unrpyc.cmd`, and temporarily append the missing directory to `$env:Path` when present.
@@ -75,10 +76,11 @@ Each time this skill is used on a project, update this skill with reusable lesso
    - Parse `define key = Character("Name", ...)` in variables files. Allow optional whitespace such as `Character ("Name", ...)`.
    - Parse `Character(...)` and `DynamicCharacter(...)` display metadata, especially `what_prefix`, `what_suffix`, `who_prefix`, and `who_suffix`, before generating the speaker map. Use this metadata to classify each speaker as spoken dialogue, inner thought, narration/no-name text, styled speech, or another project-specific visible-text type.
    - Parse `default var = "value"` for dynamic text variables such as `[playerName]`, `[playerNameA]`, `[jnNick]`, `[scarNick]`, `[heart]`.
+   - When variables are defined inside `init python:` blocks as plain Python assignments (not `default`/`define`), the bundled script may not discover them. Add essential missing variables to the config `substitutions` map directly, or set `variable_files` to include both the variables file and the character-definition file when they are separate.
    - Add speaker keys themselves as substitutions when needed, e.g. `[mc]` should render through `mc = Character("[playerName]")`.
    - Support Ren'Py interpolation forms such as `[playerName]`, `[playerName!u]`, and `[playerName.upper()]`.
    - Override protagonist variables and speakers to `You`: examples include `[player_name]`, `[playerName]`, `[mc]`, `[p]`, and `define p = Character("[player_name]")`. Apply this override before generating the story text and speaker map.
-   - When the protagonist has separate speech and thought speakers, keep both mapped to `You` but record the mode separately, for example `mc = You (speech)` and `mct = You (thought)`.
+   - When the protagonist has separate speech and thought speakers, keep both mapped to `You` but record the mode separately, for example `mc = You (speech)` and `mct = You (thought)`. Use config `speaker_mode` to attach display suffixes to speaker keys without mutating the base name, e.g. `"speaker_mode": {"mct": "thought"}` produces `You (thought): text`. Do not set `speaker_mode` for keys whose Character name already includes the mode text (e.g. `define mctxt = Character("[mcf] (Text)")` already renders as `You (Text)`).
 
 7. Extract player-visible story text.
    - Keep dialogue, narrator lines, meaningful centered transition text, choices, and in-game text messages.
@@ -88,6 +90,8 @@ Each time this skill is used on a project, update this skill with reusable lesso
    - Story-visible `screen text` may live in support screens and be triggered by `show screen` or unlock variables rather than normal dialogue, such as time cards, email/readable documents, poems, news captions, death messages, or audio logs. Include only screens reached from story flow or unlocked at that point; exclude menu, gallery, preference, score, and minigame UI text.
    - Infer message sender from image filenames when the call does not specify one.
    - Remove Ren'Py style/control tags such as `{i}`, `{size=...}`, `{font=...}`, `{w}`, `{p}`, `{nw}`, `{fast}`, `{image=...}`.
+   - Remove Ren'Py hyperlink syntax `[[link text]]` (rendering just the inner text), which may survive tag stripping as `[[text]` when decompilation splits the closing `]]` across tag boundaries.
+   - After removing known tags, strip any remaining `{...}` patterns (decompilation may produce malformed tag closers such as `{/p}`, `{/!}`, `{/f}`, `{/}` which are not standard Ren'Py tags).
    - Treat `extend "..."` as a continuation of the previous visible line, not as a speaker named `extend`.
    - Repair mojibake caused by decompilation/terminal encoding when visible text shows misdecoded curly quotes, apostrophes, symbols, or name punctuation; use a Unicode repair pass such as `ftfy` when appropriate, then re-audit.
    - Exclude asset paths, UI labels, input prompts, age gates, gallery/music data, and contact-list menu entries.
