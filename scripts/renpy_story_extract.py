@@ -89,7 +89,7 @@ def natural_key(value):
 def load_config(path):
     if not path:
         return {}
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    return json.loads(Path(path).read_text(encoding="utf-8-sig"))
 
 
 def all_rpy_files(source_dir):

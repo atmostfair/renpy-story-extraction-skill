@@ -9,6 +9,13 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import renpy_story_extract as extractor  # noqa: E402
 
 
+def test_load_config_accepts_utf8_bom(tmp_path):
+    config = tmp_path / "config.json"
+    config.write_bytes(b"\xef\xbb\xbf" + b'{"story_units": []}')
+
+    assert extractor.load_config(config) == {"story_units": []}
+
+
 def test_named_none_character_speaker_renders_as_narration(tmp_path):
     source_dir = tmp_path / "game"
     source_dir.mkdir()

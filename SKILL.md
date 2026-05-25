@@ -78,6 +78,7 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Desktop projects may define day/chapter order in Python UI data classes such as `ChapterItem(..., content=[["label", "date"], ...])`, plus separate `New Game` and `Latest Update` `Jump(...)` buttons. Treat the content list as the primary ordered story index, and record the selector file as ordering evidence.
    - Desktop projects may also expose a `chapter_selection` or similar screen whose `textbutton` actions call `Start("DayN_Start")` for every chapter. Treat that screen as explicit chapter order, then confirm it against the `start` label and end-of-chapter jump chain.
    - For sandbox/event-framework games, JSON or Python data tables may be the real ordering controller. Treat event registration tables such as `events.json` as the primary order for event units; include playlet/random-ambient tables separately when they represent player-visible scenes rather than UI. When `run_interaction` dynamically jumps to relation-specific labels, expand the registered base label into existing suffix labels such as `_general`, `_girlfriend`, `_sexpartner`, `_fiancee`, `_lover`, or `_maid`.
+   - Android open-map builds may use Ren'Py Python tables rather than JSON for ordering. Treat tables such as `TB_Quest`, `TB_Mission`, `TB_Card`, `TB_Stream`, `TB_Memory`, `TB_Action`, `TB_Room`, and `TB_ActorGrp` collectively as ordering evidence; then append remaining visible story/event labels by source order and record the fallback reason.
    - For open-map relationship games with no single chapter route, relation/contact screens, event-list screens, replay galleries, and map-trigger conditions may collectively define the closest project-authored order. Use the entry prologue first, then the project UI's character/event grouping and source-code event order, and record that evidence in the manifest instead of pretending there is a linear jump chain.
    - If a specific file constrains which story file comes before another, use that file as the primary ordering source and record the evidence in a manifest or notes.
    - Follow unconditional transitions between files.
@@ -90,6 +91,7 @@ When this skill package is a Git checkout, sync before and after skill work.
 
 5. Build the per-story output plan.
    - Create ordered story units from the code-defined order. A unit can be an entire file, a label range, or a side-file insertion point.
+   - If a project config was edited by Windows tools and starts with a UTF-8 BOM, read it with `utf-8-sig` or normalize it before loading JSON so a valid config is not rejected.
    - Assign filenames before extraction: `story01_<title>.txt`, `story02_<title>.txt`, etc. Use at least two digits; increase padding if there are 100+ units.
    - Derive `<title>` from project-visible chapter/episode/replay titles when available. If no title exists, use the source stem and start label, for example `story03_script_exp_01_expansion_01_start.txt`.
    - Produce an index or manifest such as `story_index.txt` or `story_manifest.json` listing sequence number, output filename, source file, label/range, and ordering evidence.
@@ -139,6 +141,8 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Do a stricter unresolved-variable search for lowercase identifier brackets such as `\[player_name\]`, `\[temp_str\]`, `\[loaded_d20roll\]`, or `\[some_var!u\]`. Resolve them to concrete defaults, readable ranges, or intentional markers.
    - For dynamic gameplay counters in player-visible text, replace unresolved variables with readable ranges or descriptions when the exact runtime value is branch/state dependent, for example `0-2`, `current bet`, or `the winning` instead of leaving `[sw_counter]` residue.
    - When unresolved variables are interpolated with currency or counters, remove misleading syntax after substitution if needed: `$[money]` can become `current money`, not `$current money`, and `[lottery_day]` can become `lottery draw day` when the runtime value is state-dependent.
+   - Handle method-style interpolation that the generic variable regex may miss, such as `[actor.Name()!t]`; replace it with a readable runtime description or a resolved table/default value rather than leaving bracket residue.
+   - On Windows/PowerShell, terminal output can make valid UTF-8 dialogue appear mojibaked. Set `PYTHONIOENCODING=utf-8` and verify file decoding before treating Korean, Chinese, or other non-ASCII text as corrupt source data.
    - Search leftover tags: `\{[^}\n]+\}`.
    - Search for fake speakers or leakage: `^extend:`, `^label `, `^screen `, and resource-like file names.
    - Audit speaker maps as well as story text. Text-variable values in a speaker map should be unescaped and cleaned with the same tag/link/resource rules as extracted story text.
@@ -148,6 +152,7 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Reverse-audit source quoted strings that the extractor did not consume; classify each as story text, UI text, resource data, or unreachable text.
    - When extraction files include metadata headers, keep ordering evidence readable without Python-list bracket syntax, or audit only the story body. Otherwise header strings like `pre_event=['foo']` can mask real unresolved interpolation variables.
    - Reverse-audit support labels with visible text, but do not automatically promote all of them into story outputs. Map/action labels, shop and wallpaper menus, tutorial hints, save/escape screens, repeatable housekeeping, wage/pay, and location descriptions are often UI or ambient support even when they contain quoted strings.
+   - If reverse-audit finds a small number of player-visible support labels outside the normal story/event folders, append them as explicitly marked supplemental support units and write a coverage report showing uncovered visible labels are zero.
    - Fix the script/config and regenerate until the output matches player-visible narrative content.
    - Run audits per output file and across the output directory. A single clean merged file is not enough if any `storyxx_*.txt` file still has leakage.
 
