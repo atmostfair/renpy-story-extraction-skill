@@ -84,6 +84,7 @@ When this skill package is a Git checkout, sync before and after skill work.
 6. Map rendered names.
    - Parse `define key = Character("Name", ...)` in variables files. Allow optional whitespace such as `Character ("Name", ...)`.
    - Parse `Character(...)` and `DynamicCharacter(...)` display metadata, especially `what_prefix`, `what_suffix`, `who_prefix`, and `who_suffix`, before generating the speaker map. Use this metadata to classify each speaker as spoken dialogue, inner thought, narration/no-name text, styled speech, or another project-specific visible-text type.
+   - Treat `Character(None, ...)`, `Character(name=None, ...)`, and equivalent no-name character definitions as narrator/no-name text. If keys such as `sys` appear as literal speakers in output, re-check no-name `Character(...)` parsing before accepting them as real speakers.
    - Parse `default var = "value"` for dynamic text variables such as `[playerName]`, `[playerNameA]`, `[jnNick]`, `[scarNick]`, `[heart]`.
    - When variables are defined inside `init python:` blocks as plain Python assignments (not `default`/`define`), the bundled script may not discover them. Add essential missing variables to the config `substitutions` map directly, or set `variable_files` to include both the variables file and the character-definition file when they are separate.
    - Add speaker keys themselves as substitutions when needed, e.g. `[mc]` should render through `mc = Character("[playerName]")`.
@@ -111,6 +112,7 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Do a stricter unresolved-variable search for lowercase identifier brackets such as `\[player_name\]`, `\[temp_str\]`, `\[loaded_d20roll\]`, or `\[some_var!u\]`. Resolve them to concrete defaults, readable ranges, or intentional markers.
    - Search leftover tags: `\{[^}\n]+\}`.
    - Search for fake speakers or leakage: `^extend:`, `^label `, `^screen `, and resource-like file names.
+   - Audit speaker maps as well as story text. Text-variable values in a speaker map should be unescaped and cleaned with the same tag/link/resource rules as extracted story text.
    - Audit known thought speaker keys and thought-style `Character(...)` definitions against the output. Confirm thought lines are marked as thoughts and are not emitted as ordinary speech.
    - If audit output contains many bracket expressions, distinguish player-visible captions like `[!!Ding-dong!!]`, TV/phone subtitles, and `[Choice]` from unresolved Ren'Py variables before changing them.
    - Reverse-audit source quoted strings that the extractor did not consume; classify each as story text, UI text, resource data, or unreachable text.

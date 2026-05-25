@@ -37,7 +37,7 @@ MESSAGE_CALL_RE = re.compile(
 )
 CHARACTER_RE = re.compile(
     r'^define\s+(?P<key>[A-Za-z_]\w*)\s*=\s*Character\('
-    r'(?P<name>None|"(?:[^"\\]|\\.)*")'
+    r'(?:name\s*=\s*)?(?P<name>None|"(?:[^"\\]|\\.)*")'
 )
 DEFAULT_RE = re.compile(
     r'^default\s+(?P<key>[A-Za-z_]\w*)\s*=\s*'
@@ -98,6 +98,7 @@ def rel_path(path, source_dir):
 def unescape_renpy_string(value):
     return (
         value.replace(r"\"", '"')
+        .replace(r"\'", "'")
         .replace(r"\\", "\\")
         .replace(r"\n", "\n")
         .replace(r"\t", "\t")
@@ -518,7 +519,8 @@ def command_extract(args):
         lines.append("# Text variables")
         for key in sorted(substitutions):
             if isinstance(substitutions[key], str):
-                lines.append(f"[{key}] = {substitutions[key]}")
+                value = clean_text(substitutions[key], substitutions)
+                lines.append(f"[{key}] = {value}")
         Path(args.speaker_map).resolve().write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     print(f"Processed story units with visible text: {processed}")
