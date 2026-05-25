@@ -19,6 +19,8 @@ When project code defines the order of story files, chapters, episodes, routes, 
 
 The default deliverable is separate ordered text files, not one monolithic merged story file. Name each extracted story output `storyxx_original-title.txt`, where `xx` is a zero-padded sequence number and `original-title` is the project-provided title when available, otherwise the source file stem plus label/range. Preserve the original title text; sanitize only characters that are invalid in filenames. A merged file may be generated as a convenience or trace artifact, but it must not replace the per-story outputs.
 
+When users request a secondary merged deliverable after split extraction, write it to a new output folder and preserve the original per-story directory unchanged. Prefer relevance-based grouping over arbitrary fixed-size batches: group story units by project-visible relationships such as exact named-character sets, route/quest clusters, or other documented manifest evidence, and preserve the original manifest/story sequence order within each merged file. Include an index or manifest that proves every source story is covered exactly once unless the user explicitly asks for overlap.
+
 Always normalize the protagonist/player name to `You` in extracted English text and speaker maps. Do not use fallback names such as Jack, MC, a persistent save value, or a default from the source project unless the user explicitly asks for that exact rendered name.
 
 Always distinguish spoken dialogue from inner thoughts in extracted text and speaker maps. Do not flatten thought-character dialogue into ordinary speech. If a project encodes thoughts through `what_prefix="("` / `what_suffix=")"`, italic thought prefixes, no-name thought characters, or speaker keys such as `mct`, `mcT`, `thought`, or `intrusive thoughts`, mark them explicitly in the output, for example `You (thought): text`. Keep normal speech as `You: text`. Apply this distinction even when the protagonist name is normalized to `You`.
@@ -86,6 +88,7 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Derive `<title>` from project-visible chapter/episode/replay titles when available. If no title exists, use the source stem and start label, for example `story03_script_exp_01_expansion_01_start.txt`.
    - Produce an index or manifest such as `story_index.txt` or `story_manifest.json` listing sequence number, output filename, source file, label/range, and ordering evidence.
    - Do not collapse future-update-sensitive units into one final text file. Keep separate story outputs so later game updates can be diffed and re-extracted incrementally.
+   - If a later merge is requested for readability, keep it as an additional artifact. Avoid fixed-count chunking unless requested; instead group by cast, route, quest, or another clear relevance key, then sort each merged group by the existing story sequence and document the grouping rule.
 
 6. Map rendered names.
    - Parse `define key = Character("Name", ...)` in variables files. Allow optional whitespace such as `Character ("Name", ...)`.
