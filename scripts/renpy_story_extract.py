@@ -254,7 +254,7 @@ def parse_substitutions_and_speakers(source_dir, config):
                 continue
             name = strip_quotes(match.group("name"))
             if name is not None:
-                name = render_variables(name, substitutions)
+                name = clean_text(name, substitutions)
             speakers[match.group("key")] = name
 
     for key, name in speakers.items():
