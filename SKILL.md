@@ -40,6 +40,7 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Desktop projects usually use `game/`.
    - Decompiled Android builds often use `assets/x-game/` and script folders such as `assets/x-game/x-scripts/`.
    - Android/YAC-crunched builds may prefix game files with `x-`, such as `assets/x-game/x-script.rpyc`, `x-game_vars.rpyc`, `x-script_exp_01.rpyc`, and `x-script_version.txt`.
+   - Some Android builds keep runtime data tables under `assets/x-game/x-scripts/x-events.json`, `x-playlets.json`, `x-interactions.json`, and similar files even when decompiled code calls `renpy.file("scripts/events.json")`. Map the runtime `scripts/...` path back to the extracted `x-scripts/x-...json` path before concluding data files are missing.
    - Some Android builds separate character definitions into their own file (e.g. `x-characters.rpyc`) and store plain Python variable assignments inside `init python:` blocks in `x-variables.rpyc` rather than using `default`/`define` syntax. When config `variable_files` is used to include the character file, the bundled script can discover speaker mappings that would otherwise be missed.
    - Check exact extensions; PowerShell `-Filter *.rpy` can also match `.rpyc`, so prefer `Where-Object { $_.Extension -eq '.rpy' }`.
    - If no `.rpy` files exist, first try a global `unrpyc ./` or a narrower path such as `unrpyc ./assets` or `unrpyc ./assets/x-game`, then inspect the generated `.rpy`.
@@ -68,6 +69,8 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Start from `start`, `intro`, or the first explicit story entry.
    - If `start` is only an age gate, disclaimer, splash, or update-intro selector, begin extraction at the first real story label such as `gamestart`, and exclude unreachable intro/update branches unless the user asks for them.
    - Search for ordering controllers before relying on jump traversal alone: chapter/episode lists, route arrays, replay/gallery definitions, screen `Jump("label")` actions, map/menu screens, update selectors, and files whose only purpose is to choose or sequence other files.
+   - For sandbox/event-framework games, JSON or Python data tables may be the real ordering controller. Treat event registration tables such as `events.json` as the primary order for event units; include playlet/random-ambient tables separately when they represent player-visible scenes rather than UI. When `run_interaction` dynamically jumps to relation-specific labels, expand the registered base label into existing suffix labels such as `_general`, `_girlfriend`, `_sexpartner`, `_fiancee`, `_lover`, or `_maid`.
+   - For open-map relationship games with no single chapter route, relation/contact screens, event-list screens, replay galleries, and map-trigger conditions may collectively define the closest project-authored order. Use the entry prologue first, then the project UI's character/event grouping and source-code event order, and record that evidence in the manifest instead of pretending there is a linear jump chain.
    - If a specific file constrains which story file comes before another, use that file as the primary ordering source and record the evidence in a manifest or notes.
    - Follow unconditional transitions between files.
    - Split files by labels when a file holds multiple flow entry points.
@@ -90,12 +93,14 @@ When this skill package is a Git checkout, sync before and after skill work.
    - When variables are defined inside `init python:` blocks as plain Python assignments (not `default`/`define`), the bundled script may not discover them. Add essential missing variables to the config `substitutions` map directly, or set `variable_files` to include both the variables file and the character-definition file when they are separate.
    - Add speaker keys themselves as substitutions when needed, e.g. `[mc]` should render through `mc = Character("[playerName]")`.
    - Support Ren'Py interpolation forms such as `[playerName]`, `[playerName!u]`, and `[playerName.upper()]`.
+   - Support object-name interpolation forms such as `[P.name]`, `[B.name]`, and other `[CharacterObject.name]` strings when character objects implement `__str__` or expose a `.name` property. If source text uses lowercase aliases or typos such as `[p]` for the protagonist, resolve them deliberately instead of leaving them as bracket residue.
    - Override protagonist variables and speakers to `You`: examples include `[player_name]`, `[playerName]`, `[mc]`, `[p]`, and `define p = Character("[player_name]")`. Apply this override before generating the story text and speaker map.
    - When the protagonist has separate speech and thought speakers, keep both mapped to `You` but record the mode separately, for example `mc = You (speech)` and `mct = You (thought)`. Use config `speaker_mode` to attach display suffixes to speaker keys without mutating the base name, e.g. `"speaker_mode": {"mct": "thought"}` produces `You (thought): text`. Do not set `speaker_mode` for keys whose Character name already includes the mode text (e.g. `define mctxt = Character("[mcf] (Text)")` already renders as `You (Text)`).
 
 7. Extract player-visible story text.
    - Keep dialogue, narrator lines, meaningful centered transition text, choices, and in-game text messages.
    - Format inner thoughts distinctly from spoken dialogue. Prefer `Speaker (thought): text` for thought-character lines and `Speaker: text` for ordinary spoken lines. If the game visibly renders thoughts with parentheses, either preserve those parentheses or use the explicit `(thought)` marker, but do not lose the distinction.
+   - When thoughts are encoded with italics on ordinary dialogue speakers, mark only whole-line italic dialogue such as `mc "{i}...{/i}"` as thought. Treat inline italics inside a larger spoken sentence as emphasis/formatting, not a thought boundary.
    - Extract phone/message calls such as `call message_img("", "text", "other/darcitxt.png")` and `call reply_message("text")`.
    - Some projects implement phone chats as dictionaries of custom `Msg(who, text, replies=...)` objects and insert them with `call chat(chat_name)`. Treat the chat file as a message container: traverse from step `"0"`, include all reachable reply branches once, render `"mc"` as `You`, and insert the chat at the call site.
    - Story-visible `screen text` may live in support screens and be triggered by `show screen` or unlock variables rather than normal dialogue, such as time cards, email/readable documents, poems, news captions, death messages, or audio logs. Include only screens reached from story flow or unlocked at that point; exclude menu, gallery, preference, score, and minigame UI text.
@@ -103,6 +108,7 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Remove Ren'Py style/control tags such as `{i}`, `{size=...}`, `{font=...}`, `{w}`, `{p}`, `{nw}`, `{fast}`, `{image=...}`.
    - Remove Ren'Py hyperlink syntax `[[link text]]` (rendering just the inner text), which may survive tag stripping as `[[text]` when decompilation splits the closing `]]` across tag boundaries.
    - After removing known tags, strip any remaining `{...}` patterns (decompilation may produce malformed tag closers such as `{/p}`, `{/!}`, `{/f}`, `{/}` which are not standard Ren'Py tags).
+   - Filter command-word quoted strings before speaker parsing. Lines such as `textbutton "View current mission" action Jump(...)`, `tooltip "..."`, `imagebutton`, and other screen/menu command text should not become fake speakers like `textbutton: ...` unless the surrounding code proves the player reads them as story text.
    - Treat `extend "..."` as a continuation of the previous visible line, not as a speaker named `extend`.
    - Repair mojibake caused by decompilation/terminal encoding when visible text shows misdecoded curly quotes, apostrophes, symbols, or name punctuation; use a Unicode repair pass such as `ftfy` when appropriate, then re-audit.
    - Exclude asset paths, UI labels, input prompts, age gates, gallery/music data, and contact-list menu entries.
@@ -111,12 +117,15 @@ When this skill package is a Git checkout, sync before and after skill work.
    - Search the output for resource paths: `audio/`, `images/`, `.png`, `.mp3`, `.ogg`, `.webm`, `.webp`.
    - Search unresolved variables: `\[[^\]\n]+\]`; only intentional markers such as `[Choice]` or `[text]` should remain.
    - Do a stricter unresolved-variable search for lowercase identifier brackets such as `\[player_name\]`, `\[temp_str\]`, `\[loaded_d20roll\]`, or `\[some_var!u\]`. Resolve them to concrete defaults, readable ranges, or intentional markers.
+   - For dynamic gameplay counters in player-visible text, replace unresolved variables with readable ranges or descriptions when the exact runtime value is branch/state dependent, for example `0-2`, `current bet`, or `the winning` instead of leaving `[sw_counter]` residue.
    - Search leftover tags: `\{[^}\n]+\}`.
    - Search for fake speakers or leakage: `^extend:`, `^label `, `^screen `, and resource-like file names.
    - Audit speaker maps as well as story text. Text-variable values in a speaker map should be unescaped and cleaned with the same tag/link/resource rules as extracted story text.
    - Audit known thought speaker keys and thought-style `Character(...)` definitions against the output. Confirm thought lines are marked as thoughts and are not emitted as ordinary speech.
    - If audit output contains many bracket expressions, distinguish player-visible captions like `[!!Ding-dong!!]`, TV/phone subtitles, and `[Choice]` from unresolved Ren'Py variables before changing them.
    - Reverse-audit source quoted strings that the extractor did not consume; classify each as story text, UI text, resource data, or unreachable text.
+   - When extraction files include metadata headers, keep ordering evidence readable without Python-list bracket syntax, or audit only the story body. Otherwise header strings like `pre_event=['foo']` can mask real unresolved interpolation variables.
+   - Reverse-audit support labels with visible text, but do not automatically promote all of them into story outputs. Map/action labels, shop and wallpaper menus, tutorial hints, save/escape screens, repeatable housekeeping, wage/pay, and location descriptions are often UI or ambient support even when they contain quoted strings.
    - Fix the script/config and regenerate until the output matches player-visible narrative content.
    - Run audits per output file and across the output directory. A single clean merged file is not enough if any `storyxx_*.txt` file still has leakage.
 
