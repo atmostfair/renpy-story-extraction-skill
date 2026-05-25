@@ -22,8 +22,9 @@ COMMAND_WORDS = {
 }
 
 DIALOGUE_RE = re.compile(
-    r'^\s*(?:(?P<speaker>[A-Za-z_][\w.]*)\s+)?'
+    r'^\s*(?:(?P<speaker>[A-Za-z_][\w.]*)\s*)?'
     r'"(?P<text>(?:[^"\\]|\\.)*)"'
+    r'(?:\s+\([^#\n]*\))*'
     r'(?:\s+with\s+[A-Za-z_][\w.]*)?\s*$'
 )
 MENU_RE = re.compile(
@@ -35,9 +36,10 @@ MESSAGE_CALL_RE = re.compile(
     r'^\s*call\s+(?P<func>message_img|reply_message)\s*'
     r'\((?P<args>.*)\)\s*(?:from\s+.*)?$'
 )
+PHONE_PYTHON_FUNCTIONS = {"send_phone_message", "present_phone_choices"}
 CHARACTER_RE = re.compile(
-    r'^define\s+(?P<key>[A-Za-z_]\w*)\s*=\s*Character\('
-    r'(?:name\s*=\s*)?(?P<name>None|"(?:[^"\\]|\\.)*")'
+    r'^define\s+(?P<key>[A-Za-z_]\w*)\s*=\s*Character\s*\('
+    r'(?:name\s*=\s*)?(?P<name>None|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')'
 )
 DEFAULT_RE = re.compile(
     r'^default\s+(?P<key>[A-Za-z_]\w*)\s*=\s*'
@@ -74,7 +76,10 @@ IMAGE_TAG_RE = re.compile(r'\{image=[^}]+\}')
 PF_TAG_RE = re.compile(r'\{pf=([A-Za-z_]\w*)\}')
 REMAINING_TAG_RE = re.compile(r'\{[^}]+\}')
 RENPY_LINK_RE = re.compile(r'\[\[([^\]]+)\]\]?')
-VAR_RE = re.compile(r'\[([A-Za-z_]\w*)(?P<method>\.upper\(\))?(?P<conversion>![^\]]+)?\]')
+VAR_RE = re.compile(
+    r'\[([A-Za-z_]\w*(?:\.(?!upper\(\))[A-Za-z_]\w*)*)'
+    r'(?P<method>\.upper\(\))?(?P<conversion>![^\]]+)?\]'
+)
 
 
 def natural_key(value):
@@ -144,6 +149,50 @@ def clean_text(text, substitutions):
     return text.strip()
 
 
+def is_whole_line_italic(text):
+    text = unescape_renpy_string(str(text)).strip()
+    while True:
+        stripped = re.sub(
+            r"^\{(?:color|size|font|alpha|outlinecolor|cps)=[^}]+\}(.*)\{/(?:color|size|font|alpha|outlinecolor|cps)\}$",
+            r"\1",
+            text,
+            flags=re.S,
+        ).strip()
+        if stripped == text:
+            break
+        text = stripped
+    return bool(re.fullmatch(r"\{i\}.*\{/i\}", text, flags=re.S))
+
+
+def unwrap_plain_thought(text, thought_wrappers):
+    stripped = unescape_renpy_string(str(text)).strip()
+    for wrapper in thought_wrappers:
+        if not isinstance(wrapper, (list, tuple)) or len(wrapper) != 2:
+            continue
+        prefix, suffix = str(wrapper[0]), str(wrapper[1])
+        if not prefix or not suffix:
+            continue
+        if not stripped.startswith(prefix) or not stripped.endswith(suffix):
+            continue
+        if len(stripped) < len(prefix) + len(suffix):
+            continue
+        inner = stripped[len(prefix):len(stripped) - len(suffix)].strip()
+        if inner:
+            return True, inner
+    return False, text
+
+
+def unwrap_plain_thought_prefix(text, thought_prefixes):
+    stripped = unescape_renpy_string(str(text)).strip()
+    for prefix in thought_prefixes:
+        prefix = str(prefix)
+        if prefix and stripped.startswith(prefix):
+            inner = stripped[len(prefix):].strip()
+            if inner:
+                return True, inner
+    return False, text
+
+
 def looks_like_resource(text):
     lowered = text.strip().lower()
     return lowered.startswith(RESOURCE_PREFIXES) or lowered.endswith(
@@ -171,6 +220,13 @@ def find_label(lines, label, start=0):
     raise ValueError(f"Label not found: {label}")
 
 
+def find_marker(lines, marker, start=0):
+    for index in range(start, len(lines)):
+        if lines[index].startswith(marker):
+            return index
+    raise ValueError(f"Marker not found: {marker}")
+
+
 def first_jump_after_label(lines, start):
     for index in range(start + 1, len(lines)):
         if JUMP_RE.match(lines[index]):
@@ -187,9 +243,13 @@ def unit_lines(path, unit):
     lines = Path(path).read_text(encoding="utf-8", errors="replace").splitlines()
     start = 0
     end = len(lines)
-    if unit.get("start"):
+    if unit.get("start_marker"):
+        start = find_marker(lines, unit["start_marker"])
+    elif unit.get("start"):
         start = find_label(lines, unit["start"])
-    if unit.get("end"):
+    if unit.get("end_marker"):
+        end = find_marker(lines, unit["end_marker"], start + 1)
+    elif unit.get("end"):
         end = find_label(lines, unit["end"], start + 1)
     if unit.get("until_first_jump"):
         end = first_jump_after_label(lines, start)
@@ -202,6 +262,10 @@ def unit_name(unit):
         name += f" :: {unit['start']}"
     if unit.get("end"):
         name += f" -> before {unit['end']}"
+    if unit.get("start_marker"):
+        name += f" :: {unit['start_marker']}"
+    if unit.get("end_marker"):
+        name += f" -> before {unit['end_marker']}"
     if unit.get("until_first_jump"):
         name += " -> first jump"
     return name
@@ -257,6 +321,9 @@ def parse_substitutions_and_speakers(source_dir, config):
                 name = clean_text(name, substitutions)
             speakers[match.group("key")] = name
 
+    for key, name in config.get("speaker_overrides", {}).items():
+        speakers[key] = clean_text(name, substitutions) if name is not None else None
+
     for key, name in speakers.items():
         if name and key not in substitutions:
             substitutions[key] = name
@@ -274,11 +341,117 @@ def parse_call_args(args_text):
         return None
 
 
+def python_statement(line):
+    stripped = line.strip()
+    if stripped.startswith("$"):
+        stripped = stripped[1:].strip()
+    return stripped
+
+
+def function_name(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    return None
+
+
+def subscript_key(node):
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Index):
+        return subscript_key(node.value)
+    return None
+
+
+def static_python_value(node, substitutions):
+    if isinstance(node, ast.Constant):
+        return node.value
+    if isinstance(node, ast.Tuple):
+        return tuple(static_python_value(item, substitutions) for item in node.elts)
+    if isinstance(node, ast.List):
+        return [static_python_value(item, substitutions) for item in node.elts]
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.USub):
+        value = static_python_value(node.operand, substitutions)
+        if isinstance(value, (int, float)):
+            return -value
+    if isinstance(node, ast.Name):
+        return substitutions.get(node.id, node.id)
+    if isinstance(node, ast.Subscript):
+        key = subscript_key(node.slice)
+        if key is None:
+            return None
+        if isinstance(node.value, ast.Name):
+            combined_key = f"{node.value.id}.{key}"
+            return substitutions.get(combined_key, substitutions.get(str(key), None))
+        if isinstance(node.value, ast.Attribute):
+            combined_key = f"{function_name(node.value)}.{key}"
+            return substitutions.get(combined_key, substitutions.get(str(key), None))
+    if isinstance(node, ast.Call):
+        return None
+    return None
+
+
+def parse_python_call(line, substitutions):
+    try:
+        expr = ast.parse(python_statement(line), mode="eval")
+    except SyntaxError:
+        return None
+    call = expr.body
+    if not isinstance(call, ast.Call):
+        return None
+    name = function_name(call.func)
+    if name not in PHONE_PYTHON_FUNCTIONS:
+        return None
+    args = [static_python_value(arg, substitutions) for arg in call.args]
+    kwargs = {
+        keyword.arg: static_python_value(keyword.value, substitutions)
+        for keyword in call.keywords
+        if keyword.arg
+    }
+    return {"name": name, "args": args, "kwargs": kwargs}
+
+
 def infer_message_sender(image_path, message_senders):
     filename = Path(image_path).name.lower()
     if filename.startswith("dmeme"):
         return None
     return message_senders.get(filename, Path(image_path).stem)
+
+
+def python_call_arg(call, index, keyword, default=None):
+    if keyword in call["kwargs"]:
+        return call["kwargs"][keyword]
+    if index < len(call["args"]):
+        return call["args"][index]
+    return default
+
+
+def extract_phone_python_items(call, substitutions, exclude_ui_texts):
+    items = []
+    stats = {"message": 0, "choice": 0}
+
+    if call["name"] == "send_phone_message":
+        speaker = python_call_arg(call, 0, "sender", "")
+        raw_text = python_call_arg(call, 1, "message_text", "")
+        text = clean_text(raw_text or "", substitutions)
+        if text and not looks_like_resource(text) and text not in exclude_ui_texts:
+            items.append(f"{speaker} [text]: {text}" if speaker else f"[text]: {text}")
+            stats["message"] += 1
+        return items, stats
+
+    choices = python_call_arg(call, 0, "choices", [])
+    if not isinstance(choices, (list, tuple)):
+        return items, stats
+    for choice in choices:
+        if not isinstance(choice, (list, tuple)) or not choice:
+            continue
+        raw_text = choice[0] if choice[0] is not None else (choice[1] if len(choice) > 1 else "")
+        text = clean_text(raw_text or "", substitutions)
+        if text and not looks_like_resource(text) and text not in exclude_ui_texts:
+            items.append(f"[Choice] {text}")
+            stats["choice"] += 1
+    return items, stats
 
 
 def update_substitutions_from_assignment(line, substitutions, input_defaults, list_values, skip_empty_fallback_key=None):
@@ -328,6 +501,8 @@ def extract_items(lines, speakers, substitutions, config):
     exclude_ui_texts = set(config.get("exclude_ui_texts", []))
     message_senders = {k.lower(): v for k, v in config.get("message_senders", {}).items()}
     speaker_mode = config.get("speaker_mode", {})
+    thought_wrappers = config.get("thought_wrappers", [])
+    thought_prefixes = config.get("thought_prefixes", [])
 
     for line in lines:
         stripped = line.strip()
@@ -363,14 +538,26 @@ def extract_items(lines, speakers, substitutions, config):
                 stats["message"] += 1
             continue
 
+        python_call = parse_python_call(line, substitutions)
+        if python_call:
+            phone_items, phone_stats = extract_phone_python_items(python_call, substitutions, exclude_ui_texts)
+            items.extend(phone_items)
+            stats["message"] += phone_stats["message"]
+            stats["choice"] += phone_stats["choice"]
+            continue
+
         dialogue = DIALOGUE_RE.match(line)
         if dialogue and not is_command_line(line):
             speaker_key = dialogue.group("speaker")
             if speaker_key in {"centered", "my_centered"} and not include_centered:
                 continue
             raw_text = dialogue.group("text")
+            whole_line_italic = bool(speaker_key) and is_whole_line_italic(raw_text)
             if looks_like_resource(raw_text):
                 continue
+            plain_thought, raw_text = unwrap_plain_thought(raw_text, thought_wrappers)
+            if not plain_thought:
+                plain_thought, raw_text = unwrap_plain_thought_prefix(raw_text, thought_prefixes)
             text = clean_text(raw_text, substitutions)
             if not text or text in exclude_ui_texts:
                 continue
@@ -379,8 +566,13 @@ def extract_items(lines, speakers, substitutions, config):
                 speaker = None
             if speaker_key and speaker_key not in speakers:
                 stats["unknown_speakers"].add(speaker_key)
-            if speaker_key and speaker_mode.get(speaker_key):
-                speaker = f"{speaker} ({speaker_mode[speaker_key]})"
+            mode = speaker_mode.get(speaker_key) if speaker_key else None
+            if not mode and whole_line_italic:
+                mode = "thought"
+            if not mode and plain_thought:
+                mode = "thought"
+            if speaker_key and mode:
+                speaker = f"{speaker} ({mode})"
             if speaker:
                 items.append(f"{speaker}: {text}")
                 stats["dialogue"] += 1
